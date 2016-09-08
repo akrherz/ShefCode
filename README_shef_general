@@ -1,0 +1,363 @@
+
+  THE DECODING OF SHEF MESSAGES USING THE "SHEFPARS" PARSING ROUTINES
+
+
+                           ABSTRACT
+
+
+Standard Hydrologic Exchange Format (SHEF) was developed as a
+prerequisite for automated hydrologic data exchange.  This paper
+describes how to use the software to parse shef messages and output
+them to the desired database system.
+
+
+                         TABLE OF CONTENTS
+
+
+    1.  Introduction
+    2.  Parsing and Posting
+    3.  The Output File, SHEFOUT
+    4.  Using Shefpars Source Code
+    5.  Error Handling
+    6.  Source Module Information
+
+
+                         APPENDIX
+
+
+    A.  Error Messages
+    B.  Downloading Software
+
+
+
+INTRODUCTION
+
+Standard Hydrologic Exchange Format (SHEF) (1) is the standard
+format used by the National Weather Service for encoding
+hydrologic data.  SHEF is sufficiently flexible to handle most
+hydro-meteorological data and as a result, is used by many programs
+within the National Weather Service (NWS) as well as elements of
+other government and private agencies.
+
+SHEF has been designed to allow for the automation of data
+handling techniques at the same time as maintaining a format which
+is visually readable.
+
+NWS handbook "Standard Hydrologic Exchange Format" documents the
+syntax for SHEF messages.  Documentation and source code are available
+from the NWS Office of Hydrology web page:
+
+        http://www.nws.noaa.gov/ohd/hrl/shef/shefcode.htm
+
+The following describes how to use the parsing subroutines in a
+program to decode SHEF messages; how to obtain the output data
+values; and how to download the source code.
+
+PARSING AND POSTING
+
+The process of taking data in SHEF and putting it in a database
+can be described as a two step process; parsing and posting.  The
+parsing step takes SHEF text messages and reduces them to a simplified,
+machine readable format.  If a SHEF message contains several data
+values, each is parsed into an separate output record ready for the
+posting process.  The posting process takes the reduced data
+and interacts with the target database in such a way that the data is
+integrated into the database.
+
+This conceptualization of the process allows software to be
+developed for the parsing step which is essentially standard and is
+not database specific thus allowing for a high degree of portability.
+The software for the posting process is database specific and is not
+presented here.
+
+The software used by the National Weather Service reads SHEF
+messages from a text file; passes each single decoded data value
+and its attributes into an output subroutine, "shout", which writes
+the value to a binary file with a set format that can be easily read
+by a posting program.  All decoded values are passed to this one
+subroutine, thus the form of the output from the shef parsing
+routines can be changed by reprogramming this one subroutine.
+
+Other files used by the parsing routines are a text resource file,
+"SHEFPARM", and optionally one or two text output files to display
+errors and a copy of the input messages.
+
+THE OUTPUT FILE, SHEFOUT
+
+This file is the "pipe" for passing the reduced data from the
+parsing step to the posting step.  It is a Fortran sequential
+unformatted file with each record being a self sufficient and complete
+description of an item of data and its attributes.  All times on the
+file have been converted to Universal Standard Time (i.e. GMT) and
+all data is in English units as prescribed in SHEF.
+
+Each record of the shefout file is written with the following
+statement in subroutine, "shout":
+
+        WRITE(LUOUT,IOSTAT=IERR)
+     $        ID,IYR,IMO,IDA,IHR,IMN,ISE,KYR,KMO,KDA,KHR,KMN,KSE,
+     $        PARCOD(1:1),BLNK3,PARCOD(2:2),BLNK3,IDUR,
+     $        PARCOD(4:4),BLNK3,PARCOD(5:5),BLNK3,PARCOD(6:6),BLNK3,
+     $        CODP,VALU,IQUAL,BLNK3,
+     $        IREV,JID,ITIME,PARCOD,BLNK4,BLNK4,
+     $        QUO
+
+where:
+
+    LUOUT ..... is the Fortran output file unit number
+    BLNK3 ..... is three blank characters as CHARACTER*3
+    BLNK4 ..... is four blank characters as CHARACTER*4
+
+and data variables are:
+
+    VARIABLE     TYPE           DESCRIPTION
+
+    ID           CHARACTER*8    Station id
+    IYR          INTEGER        Year of observation date (4 digits)
+    IMO          INTEGER        Month of observation date
+    IDA          INTEGER        Day of observation date
+    IHR          INTEGER        Hour of observation date
+    IMN          INTEGER        Minute of observation date
+    ISE          INTEGER        Second of observation date
+    KYR          INTEGER        Year of creation date (4 digits)
+    KMO          INTEGER        Month of creation date
+    KDA          INTEGER        Day of creation date
+    KHR          INTEGER        Hour of creation date
+    KMN          INTEGER        Minute of creation date
+    KSE          INTEGER        Second of creation date
+    PARCOD(1:1)  CHARACTER*1    First character of physical element
+                                code
+    PARCOD(2:2)  CHARACTER*1    Second character of physical element
+                                code
+    IDUR         INTEGER        Encoded duration code
+    PARCOD(4:4)  CHARACTER*1    Type code
+    PARCOD(5:5)  CHARACTER*1    Source code
+    PARCOD(6:6)  CHARACTER*1    Extremum code
+    CODP         REAL           Probability code
+    VALU         DOUBLE PREC'N  Data value
+    IQUAL        CHARACTER*1    Data qualifier
+    IREV         INTEGER        Revision code (0=not a rev,1=rev)
+    JID          CHARACTER*8    Data source
+    ITIME        INTEGER        Time series indicator
+                                (0=no ts,1=first elem,2=othr elem)
+    PARCOD(1:8)  CHARACTER*8    Full parameter code
+    QUO          CHARACTER*80   Internal comment (quote for data value)
+
+Each output record contains 208 bytes; 128 bytes for the normal data
+value variables and 80 bytes for the output internal comment or quote,
+QUO.  The size of QUO is set in subroutine "shdcod" and can be changed
+in that routine without any side effects in any other code.
+For further description of the output variables check with the NWS
+handbook, "Standard Hydrologic Exchange Format".
+
+USING SHEFPARS SOURCE CODE
+
+The parsing of SHEF messages is done by calling subroutine "shdriv".
+The only arguments passed to "shdriv" are five Fortran unit numbers for
+the input and output files used by the parser.  Only the first three
+unit numbers are required, the last two output files are optional (a
+"-1" will cause their output to be skipped).  Programs using the SHEF
+parser routines assume the tasks of opening the files using Fortran
+open statements, passing the unit numbers to "shdriv", and eventually
+closing the files upon returning from "shdriv".  Inside "shdriv",
+subroutine "shout" is eventually called which writes the decoded
+data in binary format the the SHEFOUT file.  Subroutine "shout"
+could be changed to accommodate the user's desired database system.
+
+Following is a simplified example of how to use the shefpars routines
+in a Fortran program (a C program would need to call a Fortran
+subroutine to open the files and obtain Fortran unit numbers):
+
+      INTEGER    LUINP,LUOUT,LUPAR,LUERR,LUDIS
+
+      OPEN (LUINP,FILE='shef_input_message',STATUS='OLD')
+      OPEN (LUOUT,FILE='shefout',FORM='UNFORMATTED',STATUS='NEW')
+      OPEN (LUPAR,FILE='SHEFPARM',STATUS='OLD')
+
+      OPEN (LUERR,FILE='shef_errors',STATUS='NEW')
+      LUCPY = LUERR
+
+        CALL SHDRIV(LUINP,LUOUT,LUPAR,LUERR,LUCPY)
+
+      CLOSE(LUINP)
+      CLOSE(LUOUT)
+      CLOSE(LUPAR)
+      CLOSE(LUERR)
+
+where the following variables are needed for "shdriv":
+
+    LUINP ... unit number of the text file to be decoded (the SHEF
+              message "input" file),
+    LUOUT ... unit number of the output binary file containing decoded
+              data in a fixed format (the "shefout" file),
+    LUPAR ... unit number of a text resource file containing shefpars
+              decode parameters defining allowable codes (the
+              "SHEFPARM" file),
+    LUERR ... unit number of a file to contain error messages that may
+              occur during the decoding,
+    LUCPY ... unit number of a file to contain a copy of the input
+              lines that are passed to the decoder.
+
+Note that unit numbers LUERR and LUCPY can be set to -1 if those
+output files are not needed, though it is recommended that the error
+file should be used.  Also, if the output error file and display file
+are to be combined into one file, just set LUCPY = LUERR instead of
+opening a separate display file (as used in this example).  It is the
+responsibility of the calling program to check that the input files
+exist and that all files are opened correctly.
+
+The currently used subroutine, "shout", outputs the decoded data to
+the binary file ready for posting, using unit number LUOUT.  If the
+user wants to look at the output, a new program or a subroutine would
+be needed to read the binary file and display the data.
+
+An alternate method of looking at the decoded message would be to
+change subroutine "shout" to output the decoded data as text.  In this
+case unit number LUOUT could be set to the standard output number for
+Fortran, or it could be used to open a text output file if the write
+statement in "shout" is modified to accompany it.
+
+Subroutines shdura, shexcd, shfact, shmaxe, shpabg, shprob, shqual,
+shsend, shtscd, and shyear each read the parameter file "SHEFPARM"
+once each time the shef decode program is run; thus repetitively
+executing the mainline to decode short messages will cause many reads
+from the SHEFPARM file.  However, if the "shdriv" subroutine is
+called many times from a continuously running mainline, the reading
+of this resource file can be kept to a minimum.
+
+The only other subroutine that reads data is "shline" in module shline.
+It reads a single shef message line.  The following declaration line
+in shline defines the length of an acceptable shef message line:
+
+      CHARACTER*1004   LINE
+
+The dimension is 4 more than the number of characters allowed in a 
+single message line.  Thus "CHARACTER*124" for example would be used
+for a maximum message line length of 120 characters.
+
+There is one "C" routine that calls C library routines "time" and
+"localtime".  It is named "shcurd" and is called in routine "shyear"
+that gets the current date.
+
+
+ERROR HANDLING
+
+All errors or warnings encountered during parsing are sent to an error
+file through subroutine "sherr".  Most errors stop parsing the current
+message while warnings are likely to output something.  All error and
+warning messages are contained in subroutine "sherrm" and are output
+to the error file through that routine.  Two other subroutines send
+text output to the error file;  1) "sherrs" can be used to output a
+summary of the number of errors and warnings;  2) "shvern" can be
+used to output the version number of the parsing routines.  A copy of
+each shef input line can be output through subroutine "shline" to a
+separate file or the error file.
+
+There are no provisions for handling signal interruptions.
+
+SOURCE MODULE INFORMATION
+
+All but one routine, "shcurd", is written in standard Fortran 77.
+The C routine is in standard ANSI C.  All the routines come from RCS
+files and have RCS keyword statements in them for tracking purposes
+only, and could give warnings alluding to unused variables or
+statements that cannot be reached.  They have never given any runtime
+problems.
+
+ERROR MESSAGES
+
+This is a list of error and warning messages that comes directly
+from subroutine "sherrm".
+
+  001
+  002   Two digits are required in date or time group
+  003   An expected parameter code is missing
+  004   File read error while accessing data file
+  005   No dot in column 1 when looking for new message
+  006   Dot found but not in column 1 of new message
+  007   Unknown message type, looking for .A, .B, or .E
+  008   Bad char in message type format (or missing blank delimiter)
+  009   Last message format was different from this continuation messg
+  010   Last message was NOT a revision unlike this continuation messg
+  011   Last message had an error so cannot continue
+  012   No positional data or no blank before it
+  013   Bad character in station id
+  014   Station id has more than 8 characters
+  015   Bad number in positional data date group
+  016   Incorrect number in date group
+  017   Incorrect number in time group
+  018   Missing blank char in positional data
+  019   Bad creation date
+  020   Bad date code letter after the character "D"
+  021   Unknown data qualifier, data value is lost
+  022   Unknown data units code (need S or E)
+  023   Unknown duration code
+  024   Bad 2-digit number following duration code
+  025   Unknown time interval code (need Y,M,D,H,N,S,E)
+  026   Bad 2-digit number following time interval code
+  027   Bad character after "DR" (relative date code)
+  028   Bad 1- or 2-digit number in relative date code
+  029   Bad character in parameter code
+  030   Bad parameter code calls for send code
+  031   Trace for code other than PP, PC, PY, SD, SF, SW
+  032   Variable duration not defined
+  033   Bad character where delimiter is expected
+  034   Non-existent value for given type and source parameter code
+  035   ZULU, DR, or DI has send code QY, PY, or HY
+  036   Forecast data given without creation date
+  037   No value given after parameter code and before slash or eol
+  038   Explicit date for codes DRE or DIE is not the end-of-month
+  039   Year not in good range (1753-2199)
+  040   Exceeded limit of data items
+  041   Too many data items for given .B format
+  042   Not enough data items for given .B format
+  043   Cannot adjust forecast date to Zulu time
+  044   Time between 0201 & 0259 on day changing from stnd to daylight
+  045   No time increment specified (use DI code)
+  046   No ".END" message for previous ".B" format
+  047   ID requires 3 to 8 characters
+  048   For DST, check Apr/Mar or Oct/Nov for 1976 thru 2040 only
+  049   Bad character in the message
+  050   Missing parameter code
+  051   Bad value chars (or missing delimiter), data may be lost
+  052   Bad character in data field
+  053   "?" not accepted for missing, use "M" or "+"
+  054   Parameter code is too long or too short
+  055   Missing delimiter between data type fields
+  056   Missing delimiter after data type field
+  057   Should use "/" after date, time, or other D-code; before data
+  058   Parm codes PP and PC require decimal value
+  059   Abort, cannot read "shefparm" file correctly
+  060   Non-existent value for given duration parameter code
+  061   Non-existent value for given extremum parameter code
+  062   Non-existent value for given conversion factor parameter code
+  063   Non-existent value for given probability parameter code
+  064   Parameter code too short or field misinterpreted as param-code
+  065   Comma not allowed in data field, data value is lost
+  066   Date check for yr-mo-da shows bad date
+  067   No data on line identified with a message type format
+  068   An unexpected ".END" message was encountered
+  069    BUMMER!!!  Maximum number of errors reached, abort message
+  070   Cannot output to binary shefpars file
+  071   Cannot access "PE conversion factors" from the "shefparm" file
+  072   Cannot access "send codes" from the "shefparm" file
+  073   Cannot access "duration codes" from the "shefparm" file
+  074   Cannot access "type/source codes" from the "shefparm" file
+  075   Cannot access "extremum codes" from the "shefparm" file
+  076   Cannot access "probability codes" from the "shefparm" file
+  077   Cannot read "SHEFPARM" file!!!!!
+  078   Bad character in data value, data value is lost
+  079   Julian day should be written with 3 digits
+  080   Too many digits in date group!
+  081   Too many characters in quotes
+  082   Data line found before completing .B format line(s)
+  083   Missing slash delimiter or bad time zone code
+  084   Too many chars in qualifier code, data value is lost
+  085   Bad data qualifier, rest of format is lost
+  086   Retained comment found without a data value, comment is lost
+  087   Unexpected slash found after parameter code, before data value
+  088   Cannot access "qualifier codes" from the "shefparm" file
+  089
+  090   Unknown error number given
+
+Date:   14 July 2004

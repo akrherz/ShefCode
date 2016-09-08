@@ -1,0 +1,46 @@
+#!/bin/ksh
+#  ============================================================================
+#  pgm: run_sheftest .. script to make a test run using sheftest
+#
+#  use:     run_sheftest
+#  ============================================================================
+
+In=shefin1
+
+D_cur=$(pwd)
+D_wrk=${D_cur%/*}/shef_workspace
+D_tes=${D_cur%/*}/shef_sheftest
+D_dat=${D_cur%/*}/shef_data
+
+[[ -d $D_wrk ]] || mkdir $D_wrk
+
+  [[ -d $D_wrk ]] || { print "ABORT: cannot find dir \"$D_wrk\"!"; exit 1; }
+  [[ -d $D_tes ]] || { print "ABORT: cannot find dir \"$D_tes\"!"; exit 1; }
+  [[ -d $D_dat ]] || { print "ABORT: cannot find dir \"$D_dat\"!"; exit 1; }
+
+P_shf=$D_tes/sheftest
+
+  [[ -x $P_shf ]] || { print "ABORT: no sheftest executable!"; exit 1; }
+
+F_par=$D_dat/SHEFPARM
+F_sin=$D_dat/$In
+
+T_par=$D_wrk/SHEFPARM
+T_sin=$D_wrk/shefin1
+
+[[ -f $T_par ]] || cp $F_par $T_par || exit 2
+[[ -f $T_sin ]] || cp $F_sin $T_sin || exit 3
+
+cd $D_wrk || exit 4
+
+$P_shf << EoF
+$In
+EoF
+
+print ""
+print "  For input file:           $D_wrk/$In"
+print ""
+print "  Binary shefout file:      $D_wrk/shefout"
+print "  Text display of data:     $D_wrk/display"
+print "  Text err and msg listing: $D_wrk/error"
+print ""

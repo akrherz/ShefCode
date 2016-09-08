@@ -1,0 +1,31 @@
+Updates to the Shefpars Code
+
+28 Feb 2007
+
+Several source files were changed to address the following problems:
+
+Need to correctly handle the new Daylight Saving Time definition which takes
+effect on 11 March 2007.
+
+When a valid ".B" statement with a closing ".END" is followed by an invalid ".B"
+statement the data values in the invalid ".B" statement are read in as though
+the original ".END" statement was not read.
+
+When the TZ code of L or LS are used in Alaska the parser interprets the wrong Z
+time.  The shef message observation goes into the database an hour after it
+should. 
+
+None of these changes require any change to the instructions for building or
+using the SHEF parser application.
+
+
+18 Dec 2007
+
+Updated the SHEFPARM input file (in shef_data) to reflect recent updates to the
+SHEF code.  No changes were made to any source files or instructions for
+building or using the SHEF parser application.
+
+
+01 Apr 2008
+
+Updated the Install instructions.  No changes to the source code.

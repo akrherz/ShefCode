@@ -1,0 +1,104 @@
+#!/bin/ksh
+#  ============================================================================
+#  pgm: make_lib_makefile .. make the makefile for the shefpars library
+#
+#  use:     make_lib_makefile
+#  ============================================================================
+
+D_cur=$(pwd)
+D_src=${D_cur%/*}/shef_src
+D_lib=${D_cur%/*}/shef_lib
+  [[ -d $D_src ]] || { print "ABORT: cannot find dir \"$D_src\"!"; exit 1; }
+  [[ -d $D_lib ]] || { print "ABORT: cannot find dir \"$D_lib\"!"; exit 1; }
+
+L_src=$D_lib/libshefdriv.a
+M_src=$D_src/Makefile
+
+{
+cat << EoF
+#  ============================================================================
+#  pgm: Makefile .. makefile to update the shefdriv archive library
+#
+#  cmt: File made on $(date) by user "$LOGNAME"
+#  ============================================================================
+ 
+LIB = $L_src
+
+EoF
+
+#=#ARFLAGS = rv
+#=#
+#=###    For HP-UX:
+#=###FFLAGS  = -w +U77 +E6 +DA1.1
+#=###CFLAGS  = -Aa -D_HPUX_SOURCE +DA1.1
+#=###    For Red Hat Linux:
+#=###FFLAGS  = -Mbackslash
+#=###CFLAGS  = -fno-strict-aliasing -DUNIX -DGRTYPE_PS
+#=#
+#=#FFLAGS  =
+#=#CFLAGS  =
+#=#
+#=#.SUFFIXES:
+#=#.SUFFIXES:   .f .c .o .a
+#=#
+#=#.f.a:
+#=#	@echo "-------------------------------- $<"
+#=#	@$(FC) $(FFLAGS) -c $< \
+#=#	   && ar $(ARFLAGS) $@ $*.o \
+#=#	   || echo "e - $*"
+#=#	@rm -f $*.o
+#=#	@echo "--------------------------------"
+#=#
+#=#.c.a:
+#=#	@echo "-------------------------------- $<"
+#=#	@$(CC) $(CFLAGS) -c $< \
+#=#	   && ar $(ARFLAGS) $@ $*.o \
+#=#	   || echo "e - $*"
+#=#	@rm -f $*.o
+#=#	@echo "--------------------------------"
+#=#
+
+#-#ARFLAGS = rvf
+#-#FFLAGS  = -w +U77 +E6
+#-#CFLAGS  = -Aa -D_HPUX_SOURCE
+#-#
+#-#.SUFFIXES:
+#-#.SUFFIXES:   .f .c .o .a
+#-#
+#-#.f.a:
+#-#	@echo "-------------------------------- $<"
+#-#	@$(FC) $(FFLAGS) -c $< \
+#-#	   && ar $(ARFLAGS) $@ $*.o \
+#-#	   || echo "e - $*"
+#-#	@rm -f $*.o
+#-#	@echo "--------------------------------"
+#-#
+#-#.c.a:
+#-#	@echo "-------------------------------- $<"
+#-#	@$(CC) $(CFLAGS) -c $< \
+#-#	   && ar $(ARFLAGS) $@ $*.o \
+#-#	   || echo "e - $*"
+#-#	@rm -f $*.o
+#-#	@echo "--------------------------------"
+#-#
+ 
+Hnam=$(uname -s)
+Hver=$(uname -r | sed -n '/^[^0-9]*\([0-9][0-9]*\).*/s//\1/p')
+Chr=""
+[[ $Hnam = HP-UX && $Hver = 10 ]] && Chr="#=#"
+[[ $Hnam = HP-UX && $Hver = 09 ]] && Chr="#-#"
+ 
+[[ -n $Chr ]] && sed -n '/^'"$Chr"'\(.*\)$/s//\1/p' $0
+
+print "\$(LIB):  \\"
+for Nex in $D_src/*.[fc]; do
+  Fil=${Nex##*/}
+  Nam=${Fil%.[fc]}
+  print "    \$(LIB)(${Nam}.o)  \\"
+done | sed '$s/  \\//'
+print ""
+
+} > $M_src
+
+print "\n   File created:   $M_src\n"
+

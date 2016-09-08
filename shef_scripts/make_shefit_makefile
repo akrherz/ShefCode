@@ -1,0 +1,120 @@
+#!/bin/ksh
+#  ============================================================================
+#  pgm: make_shefit_makefile .. make makefile for the shefit shefpars program
+#
+#  use:     make_shefit_makefile
+#  ============================================================================
+
+D_cur=$(pwd)
+D_tes=${D_cur%/*}/shef_shefit
+D_src=${D_cur%/*}/shef_src
+D_lib=${D_cur%/*}/shef_lib
+  [[ -d $D_tes ]] || { print "ABORT: cannot find dir \"$D_tes\"!"; exit 1; }
+  [[ -d $D_src ]] || { print "ABORT: cannot find dir \"$D_src\"!"; exit 1; }
+  [[ -d $D_lib ]] || { print "ABORT: cannot find dir \"$D_lib\"!"; exit 1; }
+
+L_src=$D_lib/libshefdriv.a
+M_tes=$D_tes/Makefile
+
+{
+cat << EoF
+#  ============================================================================
+#  pgm: Makefile .. makefile to make the shefpars shefit program
+#
+#  cmt: File made on $(date) by user "$LOGNAME"
+#  ============================================================================
+ 
+PGM = $D_tes/shefit
+LIB = $L_src
+SRC = $D_src
+
+EoF
+
+#=###    For HP-UX:
+#=###FFLAGS  = -w +U77 +E6 +DA1.1
+#=###CFLAGS  = -Aa -D_HPUX_SOURCE +DA1.1
+#=###    For Red Hat Linux:
+#=###FFLAGS  = -Mbackslash
+#=###CFLAGS  = -fno-strict-aliasing -DUNIX -DGRTYPE_PS
+#=#
+#=#FFLAGS  =
+#=#CFLAGS  =
+#=#
+#=#.SUFFIXES:
+#=#.SUFFIXES:   .f .c .o
+#=#
+#=#.f.o:
+#=#	@echo "-------------------------------- $<"
+#=#	@$(FC) $(FFLAGS) -c $< \
+#=#	   && chmod 664 ${*F}.o  \
+#=#	   && echo "o - ${*F}.o" \
+#=#	   || echo "e - ${*F}"
+#=#	@echo "--------------------------------"
+#=#
+#=#.c.o:
+#=#	@echo "-------------------------------- $<"
+#=#	@$(CC) $(CFLAGS) -c $< \
+#=#	   && chmod 664 ${*F}.o  \
+#=#	   && echo "o - ${*F}.o" \
+#=#	   || echo "e - ${*F}"
+#=#	@echo "--------------------------------"
+#=#
+
+#-###    For HP-UX:
+#-###FFLAGS  = -w +U77 +E6
+#-###CFLAGS  = -Aa -D_HPUX_SOURCE
+#-###    For Red Hat Linux:
+#-###FFLAGS  = -Mbackslash
+#-###CFLAGS  = -fno-strict-aliasing -DUNIX -DGRTYPE_PS
+#-#
+#-#FFLAGS  =
+#-#CFLAGS  =
+#-#
+#-#.SUFFIXES:
+#-#.SUFFIXES:   .f .c .o
+#-#
+#-#.f.o:
+#-#	@echo "-------------------------------- $<"
+#-#	@$(FC) $(FFLAGS) -c $< \
+#-#	   && chmod 664 ${*F}.o  \
+#-#	   && echo "o - ${*F}.o" \
+#-#	   || echo "e - ${*F}"
+#-#	@echo "--------------------------------"
+#-#
+#-#.c.o:
+#-#	@echo "-------------------------------- $<"
+#-#	@$(CC) $(CFLAGS) -c $< \
+#-#	   && chmod 664 ${*F}.o  \
+#-#	   && echo "o - ${*F}.o" \
+#-#	   || echo "e - ${*F}"
+#-#	@echo "--------------------------------"
+#-#
+
+Hnam=$(uname -s)
+Hver=$(uname -r | sed -n '/^[^0-9]*\([0-9][0-9]*\).*/s//\1/p')
+Chr=""
+[[ $Hnam = HP-UX && $Hver = 10 ]] && Chr="#=#"
+[[ $Hnam = HP-UX && $Hver = 09 ]] && Chr="#-#"
+ 
+[[ -n $Chr ]] && sed -n '/^'"$Chr"'\(.*\)$/s//\1/p' $0
+
+print "OBJ =  \\"
+for Nex in $D_tes/*.[fc]; do
+  Fil=${Nex##*/}
+  Nam=${Fil%.[fc]}
+  print "    ${Nam}.o  \\"
+done | sed '$s/  \\//'
+print ""
+
+print "\$(PGM):  \\"
+print "    \$(OBJ)  \\"
+print "    makelib"
+print "	@\$(FC) \$(FFLAGS) -o \$@ \$(OBJ) \$(LIB)"
+print ""
+print "makelib:"
+print "	@cd \$(SRC); make -f Makefile"
+print ""
+} > $M_tes
+
+print "\n   File created:   $M_tes\n"
+

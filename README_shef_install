@@ -1,0 +1,212 @@
+DOWNLOADING SOFTWARE
+
+
+          File Structure for the Shefpars Code Transfer (Linux)
+
+
+A compressed tar file "ShefCode_tar.gz" is used to transfer the
+shefpars code, test programs, and data.  Download this file and
+uncompress it using the gunzip utility; then untar the file as follows:
+
+      tar  -xvf  ShefCode_tar
+      rm  ShefCode_tar
+
+Seven directories and three text files are created as follows:
+
+      README_shef_general .. readme text file with general information
+      README_shef_install .. readme text file for installing the
+                             software
+      README_shef_updates... readme text file describing updates		     
+      shef_src ............. directory for all parsing subroutines
+      shef_sheftest ........ directory for test mainline
+      shef_data ............ directory for SHEFPARM file and example
+                             input/output
+      shef_lib ............. directory for parsing subroutines
+                             archive library
+      shef_scripts ......... directory for scripts to make makefiles
+      shef_workspace ....... directory for running the test shefpars
+                             program
+      shef_shefit .......... directory for source to make program
+                             "shefit"
+
+All that is required to make a program using the shefpars decoder
+is the source modules in directory "shef_src", and one data file
+"SHEFPARM" in directory "shef_data".  Subroutine "shdriv" is the
+driver for the parser.  The rest of the files are for support of
+compiling and testing the parser.
+
+A test program "shmain" and its called display routine "shpout" in
+directory "shef_sheftest" can be used as an example of how to run the
+shefpars decoder; or as an example of how to create a user developed
+program calling routine "shdriv".  Its function is to open the input
+message file and the "SHEFPARM" file, create and open the output
+files, run the decoder, and display the results with a decoded text
+file and a status/error file.
+
+    Four scripts are included in directory "shef_scripts":
+
+      make_lib_makefile ...... creates a makefile in directory
+                               "shef_src" that will compile and make
+                               an archived library for the shef
+                               decoder.  The library is placed in
+                               directory "shef_lib".
+
+      make_sheftest_makefile . creates a makefile in directory
+                               "shef_sheftest" that will compile the
+                               "test" source modules and create an
+                               executable called "shefpars" in
+                               directory "shef_sheftest".
+
+      make_shefit_makefile ... creates a makefile in directory
+                               "shef_shefit" that will compile the
+                               "shefit" source modules and create an
+                               executable called "shefit" in
+                               directory "shef_shefit".
+
+      run_sheftest ........... makes a test run using the created
+                               "sheftest" executable and test data
+                               from directory "shef_data".  The
+                               input data "shefin1", file "SHEFPARM",
+                               and all the output files are placed
+                               in directory "shef_workspace".
+
+Note, the makefiles are created to work on our LINUX platform.  They
+are about as generic as can be.  A "sed" function in the scripts that
+make the makefiles attempts to create the needed environment.  Of
+course, once the makefiles are created, they can be manually adjusted
+to suit the user's needs before they are run.
+
+The example test program "shefpars" requires one input line on the
+standard input unit which contains the filename (128 char max) of
+the input shef message to be decoded.  Also required is the shefpars
+resource file "SHEFPARM" in the same directory where the test
+program is run.  Three output files are created in the current
+directory:
+ 
+      shefout .... a binary output file for the edited input shef
+                   message
+      display .... a text file that displays the data in the binary
+                   file (subroutine "shpout" creates this file)
+      error ...... a status file with messages and errors (if any)
+ 
+The following ksh script can be used independently to run "sheftest":
+ 
+      Input=$2
+      [[ -f ./SHEFPARM ]] || exit 1
+      [[ -f $Input ]] || exit 1
+      sheftest << EoF 2> log
+      $Input
+      EoF
+
+The following example output files are given with this program in
+directory "shef_data":
+
+      shefin1 .... a long example of shef input messages including
+                   messages with errors
+      SHEFdis .... the output from the "shpout" subroutine that
+                   displays in text mode what the resulting "shefout"
+                   file would contain
+      SHEFerr .... the shef error messages from the given input file
+                   (including a list of all input)
+
+They can be compared with the output from the test run; but note that
+some of the output dates are determined by when the program is run
+since defaults to the current month or year are involved.
+
+About program "shefit"; it is made using source code in directories
+"./shef_shefit" and "./shef_src".  It is a filter version of the
+shefpars program (output is ascii text).  For instructions on its
+use, run the command "shefit -help" after making the program.
+
+
+          Summary of Commands to Download and Run Shefpars
+
+
+ 1) Create a directory to contain the shefpars code (need about
+    2 MB):
+
+                cd  <parent-dir>
+                mkdir  shefpars
+                cd  shefpars
+
+ 2) Download the compressed tar file for the shefpars code
+    (i.e. after ftp):
+
+                cp  ShefCode_tar.gz  .
+
+ 3) Uncompress and untar to create a file structure:
+
+                gunzip  ShefCode_tar.gz
+                tar  -xvf  ShefCode_tar
+                rm  ShefCode_tar
+
+ 4) Source code for the shefpars driver is in directory "shef_src".
+    Now run some scripts to make makefiles; then run the makefiles
+    to create a program; and finally run a script to test the
+    program:
+
+    Special Note1:  The "FFLAGS" and "CFLAGS" variables in the
+                    makefiles are created below will probably need
+                    editing for the local compilers.
+
+                cd  ./shef_scripts
+                make_lib_makefile
+                make_sheftest_makefile
+
+                cd  ../shef_src
+                  < may need to edit file "Makefile" for compiler
+                    options >
+                  < may need to edit "shcurd.c" for underscore >
+                make  -f  Makefile
+                cd  ../shef_sheftest
+                  < may need to edit file "Makefile" for compiler
+                    options >
+                make  -f  Makefile
+
+                cd  ../shef_scripts
+                run_sheftest
+
+    Special Note2:  Source module "shcurd.c" may not compile with
+                    some "Fortran-call-c" compilers ... so it may
+                    be necessary to put a underscore "_" after the
+                    name "shcurd" in the module "shcurd.c and
+                    recompile it.
+
+                 may need to change line:
+                       void shcurd(int *yr,int *mo,int *da
+                 to:
+                       void shcurd_(int *yr,int *mo,int *da)
+                 in routine "shcurd.c" and rerun the makefile.
+
+ 5) The output can be compared to the expected output in directory
+    "shef_data" but note that some dates may differ because missing
+    dates will default to a current date (later that when the
+    example output was made):
+
+                cd  ../shef_workspace
+                diff  display  ../shef_data/SHEFdis
+                diff  error  ../shef_data/SHEFerr
+
+ 6) Source code for the shefpars filter program "shefit" is in
+    directory "shef_shefit".  It also uses the shefpars driver code.
+    Run the following to make "shefit":
+
+    Special Note3:  Source module "get_apps_defaults.c" may need a
+                    underscore "_" at the end of the routine name
+                    similar to module "shcurd.c" in Special Note2
+                    above for some compilers.  For one compiler, two
+                    underscores were needed; example:
+                       "int get_apps_defaults__(..."
+
+                cd  ../shef_scripts
+                make_shefit_makefile
+
+                cd  ../shef_shefit
+                  < may need to edit file "Makefile" for compiler
+                    options >
+                  < may need to edit "get_apps_defaults.c" for
+                    underscore >
+                make  -f  Makefile
+                shefit -help
+
+Date:   01 April 2008
